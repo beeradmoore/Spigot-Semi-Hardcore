@@ -11,6 +11,8 @@ public class App extends JavaPlugin
 {
     public void onEnable()
     {
+        saveDefaultConfig();
+
         PluginManager pluginManager = getServer().getPluginManager();
         pluginManager.registerEvents(new PlayerMoveListener(this), this);
     }
