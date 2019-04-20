@@ -41,13 +41,176 @@ public class PlayerMoveListener implements Listener
         loadData();
     }
 
-    private void loadData()
+    @EventHandler
+    public void onEntityDeath(PlayerDeathEvent event)
     {
-        if (true)
+        _app.getLogger().info("onEntityDeath");
+
+        Player player = event.getEntity();
+
+        int deathDuration = _app.getConfig().getInt("death-duration", 21600);
+
+        _deathLocations.put(player.getName(), new DeathData(player, deathDuration));
+
+        startTimer(player.getName(), deathDuration);
+
+        saveData();
+    }
+
+
+    @EventHandler
+    public void onPlayerRespawn(PlayerRespawnEvent event)
+    {
+        _app.getLogger().info("onPlayerRespawn");
+
+        Player player = event.getPlayer();
+
+        _app.getServer().getScheduler().scheduleSyncDelayedTask(_app, new Runnable() {
+            public void run() {                
+
+                if (player.getGameMode() == GameMode.SPECTATOR)
+                {
+                    if (_deathLocations.containsKey(player.getName()))
+                    {
+                        DeathData deathData = _deathLocations.get(player.getName());
+                        _app.getLogger().info("containsKey");
+                        player.teleport(deathData.getDeathLocation());
+                        player.setFlySpeed(0);
+                        player.setWalkSpeed(0);
+                        _app.getLogger().info("deathTime: " + deathData.getDeathTime());
+                        _app.getLogger().info("getRespawnTime: " + deathData.getRespawnTime());
+                        int currentTime = (int)(System.currentTimeMillis() / 1000L);
+                        int secondsUntilRespawn = deathData.getRespawnTime() - currentTime;
+                        if (secondsUntilRespawn > 0)
+                        {
+                            String respawnTime = secondsToDisplay( secondsUntilRespawn);
+                            player.sendMessage("" + ChatColor.RED + "" + ChatColor.BOLD + "NOTE:" + ChatColor.RESET + "" + ChatColor.RED + " You will respawn in " + respawnTime + ".");
+                        }
+                        else
+                        {
+                            respawnPlayer(player);
+                        }
+                    }
+                    else
+                    {
+                        _app.getLogger().info("doesnt contain key");
+                        player.teleport(player.getBedSpawnLocation());
+                        player.sendMessage("" + ChatColor.RED + "" + ChatColor.BOLD + "NOTE:" + ChatColor.RESET + "" + ChatColor.RED + " Something broke, fetch an OP to make you no longer a ghost.");
+
+                    }
+                }
+                else
+                {
+
+                }
+            }
+        }, 2l);
+
+       
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event)
+    {
+        _app.getLogger().info("onPlayerQuitEvent");
+
+        String playerName = event.getPlayer().getName();
+        Timer timer = _deathTimers.get(playerName);
+        if (timer != null)
         {
-            return;
+            timer.cancel();
+            timer = null;
+
+            _deathTimers.remove(playerName);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerJoinEvent(PlayerJoinEvent event)
+    {
+        _app.getLogger().info("onPlayerJoinEvent");
+
+        Player player = event.getPlayer();
+        player.sendMessage("" + ChatColor.RED + "" + ChatColor.BOLD + "NOTE:" + ChatColor.RESET + "" + ChatColor.RED + " A death will result in you being a ghost for " + displaySeconds + ".");
+
+
+        if (player.getGameMode() == GameMode.SPECTATOR)
+        {
+            if (_deathLocations.containsKey(player.getName()))
+            {
+                DeathData deathData = _deathLocations.get(player.getName());
+                
+            }
+            else
+            {
+                respawnPlayer(player);
+            }
+            
+            int deathDuration = _app.getConfig().getInt("death-duration", 21600);
+            String displaySeconds = secondsToDisplay(deathDuration);
+
         }
 
+    }
+    
+    @EventHandler
+    public void onTeleport(PlayerTeleportEvent event)
+    {
+        if (event.getCause() == TeleportCause.SPECTATE)
+        {
+            event.setCancelled(true);
+            event.getPlayer().sendMessage(ChatColor.RED + "Sorry, but I can't let you do that!");
+        }
+    }
+
+    private void displayRespawnCountdown(Player player)
+    {
+        if (_deathLocations.containsKey(player.getName()) && player.isOnline())
+        {
+
+        }
+    }
+
+    private String secondsToDisplay(int seconds)
+    { 
+        int remainingSeconds = seconds;
+
+        int minutes = remainingSeconds / 60;
+        remainingSeconds -= (minutes * 60);
+
+        int hours = minutes / 60;
+        minutes -= (hours * 60);
+
+        String output = "";
+
+        if (hours > 0)
+        {
+            output += "" + hours + ((hours == 1) ? " hour" : " hours");
+        }
+
+        if (minutes > 0)
+        {
+            if (output != "")
+            {
+                output += ", "; 
+            }
+            output += "" + minutes + ((minutes == 1) ? " minute" : " minutes");
+        }
+
+        if (remainingSeconds > 0)
+        {
+            if (output != "")
+            {
+                output += ", "; 
+            }
+            output += "" + remainingSeconds + ((remainingSeconds == 1) ? " second" : " seconds");
+        }
+
+        return output;
+    }
+
+    private void loadData()
+    {
         _app.getLogger().info("LoadData");
         FileReader fileReader = null;
         try
@@ -190,8 +353,6 @@ public class PlayerMoveListener implements Listener
                 if (spawnLocation == null)
                 {
                     spawnLocation = _app.getServer().getWorlds().get(0).getSpawnLocation();
-                    //.._app.getServer().getWorld(_app.getHandle().spawnrod)
-                    //spawnLocation = _app.getServer().getWorld("world").getSpawnLocation();
                 }
 
                 player.teleport(spawnLocation);
@@ -200,262 +361,8 @@ public class PlayerMoveListener implements Listener
                 player.spigot().respawn();
                 player.setGameMode(GameMode.SURVIVAL);
             }
-        }, 1l);
-    }
-
-    @EventHandler
-    public void onEntityDeath(PlayerDeathEvent event)
-    {
-        _app.getLogger().info("onEntityDeath");
-
-        Player player = event.getEntity();
-
-        int deathDuration = _app.getConfig().getInt("death-duration", 21600);
-
-        _deathLocations.put(player.getName(), new DeathData(player, deathDuration));
-
-        startTimer(player.getName(), deathDuration);
-
-        saveData();
-    }
-
-
-    @EventHandler
-    public void onPlayerRespawn(PlayerRespawnEvent event)
-    {
-        _app.getLogger().info("onPlayerRespawn");
-
-        Player player = event.getPlayer();
-
-        _app.getServer().getScheduler().scheduleSyncDelayedTask(_app, new Runnable() {
-            public void run() {                
-
-                if (player.getGameMode() == GameMode.SPECTATOR)
-                {
-                    if (_deathLocations.containsKey(player.getName()))
-                    {
-                        DeathData deathData = _deathLocations.get(player.getName());
-                        _app.getLogger().info("containsKey");
-                        player.teleport(deathData.getDeathLocation());
-                        player.setFlySpeed(0);
-                        player.setWalkSpeed(0);
-                        _app.getLogger().info("deathTime: " + deathData.getDeathTime());
-                        _app.getLogger().info("getRespawnTime: " + deathData.getRespawnTime());
-                        int currentTime = (int)(System.currentTimeMillis() / 1000L);
-                        int secondsUntilRespawn = deathData.getRespawnTime() - currentTime;
-                        if (secondsUntilRespawn > 0)
-                        {
-                            String respawnTime = secondsToDisplay( secondsUntilRespawn);
-                            player.sendMessage("" + ChatColor.RED + "" + ChatColor.BOLD + "NOTE:" + ChatColor.RESET + "" + ChatColor.RED + " You will respawn in " + respawnTime + ".");
-                        }
-                        else
-                        {
-                            respawnPlayer(player);
-                        }
-                    }
-                    else
-                    {
-                        _app.getLogger().info("doesnt contain key");
-                        player.teleport(player.getBedSpawnLocation());
-                        player.sendMessage("" + ChatColor.RED + "" + ChatColor.BOLD + "NOTE:" + ChatColor.RESET + "" + ChatColor.RED + " Something broke, fetch an OP to make you no longer a ghost.");
-
-                    }
-                }
-            }
         }, 2l);
-
-       
     }
 
-    @EventHandler
-    public void onPlayerQuit(PlayerQuitEvent event)
-    {
-        _app.getLogger().info("onPlayerQuitEvent");
-
-        _deathTimers.remove(event.getPlayer().getName());
-    }
-
-    @EventHandler
-    public void onPlayerJoinEvent(PlayerJoinEvent event)
-    {
-        _app.getLogger().info("onPlayerJoinEvent");
-
-        Player player = event.getPlayer();
-        
-        int deathDuration = _app.getConfig().getInt("death-duration", 21600);
-        String displaySeconds = secondsToDisplay(deathDuration);
-
-        player.sendMessage("" + ChatColor.RED + "" + ChatColor.BOLD + "NOTE:" + ChatColor.RESET + "" + ChatColor.RED + " A death will result in you being a ghost for " + displaySeconds + ".");
-
-    }
-
-    private String secondsToDisplay(int seconds)
-    { 
-        int remainingSeconds = seconds;
-
-        int minutes = remainingSeconds / 60;
-        remainingSeconds -= (minutes * 60);
-
-        int hours = minutes / 60;
-        minutes -= (hours * 60);
-
-        String output = "";
-
-        if (hours > 0)
-        {
-            output += "" + hours + ((hours == 1) ? " hour" : " hours");
-        }
-
-        if (minutes > 0)
-        {
-            if (output != "")
-            {
-                output += ", "; 
-            }
-            output += "" + minutes + ((minutes == 1) ? " minute" : " minutes");
-        }
-
-        if (remainingSeconds > 0)
-        {
-            if (output != "")
-            {
-                output += ", "; 
-            }
-            output += "" + remainingSeconds + ((remainingSeconds == 1) ? " second" : " seconds");
-        }
-
-        return output;
-    }
-
-    @EventHandler
-    public void onMove(PlayerMoveEvent event)
-    {
-        _app.getLogger().info("onMove");
-                
-
-        if (event.getPlayer().getGameMode() == GameMode.SPECTATOR)
-        {
-            Location fromLocation = event.getFrom();
-            Location toLocation = event.getTo();
-
-            if (true) return;
-
-            //event.getPlayer().setVelocity(new Vector().zero());
-
-            // Otherwise lets block them in a 5x5x5 area.
-
-            if (_deathLocations.containsKey(event.getPlayer().getName()))
-            {
-                _app.getLogger().info("haveDeathLocation");
-                // If we have a death location lets use it.
-
-                // This makes a bounding box, we can update it to bounding sphere in future.
-                double prisonSize = 5.0;
-
-
-                DeathData deathData = _deathLocations.get(event.getPlayer().getName());
-                Location deathLocation = deathData.getDeathLocation();
-
-                Vector movementFromDeath = toLocation.toVector().subtract(deathLocation.toVector());
-
-                if (movementFromDeath.length() > prisonSize)
-                {
-                    /*
-                    Vector newToPosition = movementFromDeath.normalize().multiply(prisonSize);
-                    toLocation.setX(newToPosition.getX());
-                    toLocation.setY(newToPosition.getY());
-                    toLocation.setZ(newToPosition.getZ());
-                    event.setTo(toLocation);
-                    return;
-                    */
-                }
-                /*
-                if (toLocation.toVector().isInSphere(deathLocation.toVector(), prisonSize) == false)
-                {
-                    toLocation.setX(fromLocation.getX());
-                    toLocation.setY(fromLocation.getY());
-                    toLocation.setZ(fromLocation.getZ());
-                    event.setTo(toLocation);
-                    return;
-                }
-                */
-
-                /*
-                
-
-                double minX = deathLocation.getX() - prisonSize;
-                double maxX = deathLocation.getX() + prisonSize;
-                double minY = deathLocation.getY() - prisonSize;
-                double maxY = deathLocation.getY() + prisonSize;
-                double minZ = deathLocation.getZ() - prisonSize;
-                double maxZ = deathLocation.getZ() + prisonSize;
-
-                double newX = toLocation.getX();
-                double newY = toLocation.getY();
-                double newZ = toLocation.getZ();
-                
-                if (newX < minX)
-                {
-                    newX = minX;
-                }
-                else if (newX > maxX)
-                {
-                    newX = maxX;
-                }
-
-                if (newY < minY)
-                {
-                    newY = minY;
-                }
-                else if (newY > maxY)
-                {
-                    newY = maxY;
-                }
-
-                if (newZ < minZ)
-                {
-                    newZ = minZ;
-                }
-                else if (newZ > maxZ)
-                {
-                    newZ = maxZ;
-                }
-
-                toLocation.setX(newX);
-                toLocation.setY(newY);
-                toLocation.setZ(newZ);
-
-                event.setTo(toLocation);
-                */
-            }
-            else
-            {
-                _app.getLogger().info("noKnownDeathLocation");
-                // Otherwise we'll just completly lock out their onMove.
-                event.setCancelled(true);
-                return;
-            }
-
-            if (toLocation.getBlock().isPassable() == false)
-            {
-                // Player is pushing up against a block they can't get through.
-                toLocation.setX(fromLocation.getX());
-                toLocation.setY(fromLocation.getY());
-                toLocation.setZ(fromLocation.getZ());
-                //event.setTo(toLocation);
-                //event.getPlayer().teleport(toLocation);
-                //event.setCancelled(true);
-            }
-        }
-    }
-        
-    @EventHandler
-    public void onTeleport(PlayerTeleportEvent event)
-    {
-        if (event.getCause().equals(TeleportCause.SPECTATE))
-        {
-            event.setCancelled(true);
-            event.getPlayer().sendMessage(ChatColor.RED + "Sorry, but I can't let you do that!");
-        }
-    }
+    
 }
