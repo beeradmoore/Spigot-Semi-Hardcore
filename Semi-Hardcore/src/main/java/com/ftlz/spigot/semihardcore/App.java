@@ -15,5 +15,6 @@ public class App extends JavaPlugin
 
         PluginManager pluginManager = getServer().getPluginManager();
         pluginManager.registerEvents(new PlayerMoveListener(this), this);
+        this.getCommand("shc").setExecutor(new CommandShc());
     }
 }

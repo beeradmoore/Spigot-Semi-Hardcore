@@ -36,6 +36,12 @@ public class PlayerMoveListener implements Listener
 
     private App _app;
     private final String DeathLocationsFilename = "SH-DeathLocations.json";
+    private static PlayerMoveListener _instance;
+
+    public static PlayerMoveListener Instance()
+    {
+        return _instance;
+    }
 
     public PlayerMoveListener(App app)
     {
@@ -43,6 +49,7 @@ public class PlayerMoveListener implements Listener
         _deathLocations = new HashMap<String, DeathData>();
         _deathTimers = new HashMap<String, Timer>();
         loadData();
+        _instance = this;
     }
 
     @EventHandler
@@ -397,5 +404,15 @@ public class PlayerMoveListener implements Listener
         }, 2l);
     }
 
-    
+    public boolean respawnPlayer(String playerName)
+    {
+        Player player = _app.getServer().getPlayer(playerName);
+        if(player.getGameMode() == GameMode.SPECTATOR)
+        {
+            player.sendMessage("You're being commanded to rise!");
+            respawnPlayer(player);
+            return true;
+        }
+        return false;
+    }
 }
