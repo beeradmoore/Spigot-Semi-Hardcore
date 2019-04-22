@@ -1,3 +1,7 @@
 main: com.ftlz.spigot.semihardcore.App
 name: Semi-Hardcore
 version: 1.0
+commands:
+  shc:
+    description: Access SHC commands
+    usage: /shc
