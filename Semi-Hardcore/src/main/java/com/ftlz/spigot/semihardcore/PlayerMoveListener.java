@@ -161,7 +161,7 @@ public class PlayerMoveListener implements Listener
         if (event.getCause() == TeleportCause.SPECTATE)
         {
             event.setCancelled(true);
-            event.getPlayer().sendMessage(ChatColor.RED + "Sorry, but I can't let you do that!");
+            event.getPlayer().setSpectatorTarget(null);
         }
     }
 
