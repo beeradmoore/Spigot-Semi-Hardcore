@@ -1,5 +1,7 @@
 package com.ftlz.spigot.semihardcore;
 
+import static org.junit.Assert.assertNotNull;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -57,6 +59,10 @@ public class PlayerMoveListener implements Listener
         saveData();
     }
 
+    private int getCurrentUnixTimestamp()
+    {
+        return (int)(System.currentTimeMillis() / 1000L);
+    }
 
     @EventHandler
     public void onPlayerRespawn(PlayerRespawnEvent event)
@@ -64,44 +70,31 @@ public class PlayerMoveListener implements Listener
         _app.getLogger().info("onPlayerRespawn");
 
         Player player = event.getPlayer();
-
+       
         _app.getServer().getScheduler().scheduleSyncDelayedTask(_app, new Runnable() {
-            public void run() {                
-
+            public void run() {
                 if (player.getGameMode() == GameMode.SPECTATOR)
                 {
-                    if (_deathLocations.containsKey(player.getName()))
+                    DeathData deathData = _deathLocations.get(player.getName());
+                    if (deathData == null)
                     {
-                        DeathData deathData = _deathLocations.get(player.getName());
-                        _app.getLogger().info("containsKey");
+                        _app.getLogger().info("DeathData was not found for " + player.getName());
+                        respawnPlayer(player);
+                        return;
+                    }
+
+                    // Lock the user down.
+                    if (deathData.getRespawnTime() > getCurrentUnixTimestamp())
+                    {
                         player.teleport(deathData.getDeathLocation());
                         player.setFlySpeed(0);
                         player.setWalkSpeed(0);
-                        _app.getLogger().info("deathTime: " + deathData.getDeathTime());
-                        _app.getLogger().info("getRespawnTime: " + deathData.getRespawnTime());
-                        int currentTime = (int)(System.currentTimeMillis() / 1000L);
-                        int secondsUntilRespawn = deathData.getRespawnTime() - currentTime;
-                        if (secondsUntilRespawn > 0)
-                        {
-                            String respawnTime = secondsToDisplay( secondsUntilRespawn);
-                            player.sendMessage("" + ChatColor.RED + "" + ChatColor.BOLD + "NOTE:" + ChatColor.RESET + "" + ChatColor.RED + " You will respawn in " + respawnTime + ".");
-                        }
-                        else
-                        {
-                            respawnPlayer(player);
-                        }
+                        displayRespawnCountdown(player, deathData);
                     }
                     else
                     {
-                        _app.getLogger().info("doesnt contain key");
-                        player.teleport(player.getBedSpawnLocation());
-                        player.sendMessage("" + ChatColor.RED + "" + ChatColor.BOLD + "NOTE:" + ChatColor.RESET + "" + ChatColor.RED + " Something broke, fetch an OP to make you no longer a ghost.");
-
+                        respawnPlayer(player);
                     }
-                }
-                else
-                {
-
                 }
             }
         }, 2l);
@@ -131,26 +124,28 @@ public class PlayerMoveListener implements Listener
         _app.getLogger().info("onPlayerJoinEvent");
 
         Player player = event.getPlayer();
-        player.sendMessage("" + ChatColor.RED + "" + ChatColor.BOLD + "NOTE:" + ChatColor.RESET + "" + ChatColor.RED + " A death will result in you being a ghost for " + displaySeconds + ".");
-
-
+       
         if (player.getGameMode() == GameMode.SPECTATOR)
         {
-            if (_deathLocations.containsKey(player.getName()))
+            DeathData deathData = _deathLocations.get(player.getName());
+
+            if (deathData == null)
             {
-                DeathData deathData = _deathLocations.get(player.getName());
-                
+                respawnPlayer(player);
+                return;
+            }
+            
+            int secondsUntilRespawn = deathData.getRespawnTime() - getCurrentUnixTimestamp();
+            if (secondsUntilRespawn > 0)
+            {
+                displayRespawnCountdown(player, deathData);
+                startTimer(player.getName(), secondsUntilRespawn);
             }
             else
             {
                 respawnPlayer(player);
             }
-            
-            int deathDuration = _app.getConfig().getInt("death-duration", 21600);
-            String displaySeconds = secondsToDisplay(deathDuration);
-
         }
-
     }
     
     @EventHandler
@@ -163,11 +158,31 @@ public class PlayerMoveListener implements Listener
         }
     }
 
+    /*
     private void displayRespawnCountdown(Player player)
     {
-        if (_deathLocations.containsKey(player.getName()) && player.isOnline())
-        {
+        displayRespawnCountdown(player, null);
+    }
+    */
 
+    private void displayRespawnCountdown(Player player, DeathData deathData)
+    {
+        if (player.isOnline())
+        {
+            if (deathData == null)
+            {
+                deathData = _deathLocations.get(player.getName());
+            }
+
+            if (deathData != null)
+            {
+                int secondsUntilRespawn = deathData.getRespawnTime() - getCurrentUnixTimestamp();
+                if (secondsUntilRespawn > 0)
+                {
+                    String respawnTime = secondsToDisplay( secondsUntilRespawn);
+                    player.sendMessage("Respawn in " + respawnTime + ".");
+                }
+            }
         }
     }
 
@@ -333,32 +348,46 @@ public class PlayerMoveListener implements Listener
 
     private void respawnPlayer(Player player)
     {
-        _app.getLogger().info("RespawnPlayer");
+        _app.getLogger().info("respawnPlayer");
 
-        if (player == null || player.isOnline() == false)
+        if (player == null)
         {
             return;
         }
 
-        if (player.getGameMode() != GameMode.SPECTATOR)
+        // Should be cleaned up, but lets be sure we clean it up.
+        cancelTimer(player.getName());
+
+        // If player isn't online we don't do anything.
+        if (player.isOnline() == false)
         {
             return;
         }
-
-        _app.getServer().getScheduler().scheduleSyncDelayedTask(_app, new Runnable() {
-            public void run() {        
-                
+        
+        _app.getServer().getScheduler().scheduleSyncDelayedTask(_app, new Runnable()
+        {
+            public void run()
+            {                
                 Location spawnLocation = player.getBedSpawnLocation();
 
+                // Players spawn locaiton was not found, send them back to world spawn.
                 if (spawnLocation == null)
                 {
                     spawnLocation = _app.getServer().getWorlds().get(0).getSpawnLocation();
                 }
 
+                // Teleport to correct poition.
                 player.teleport(spawnLocation);
+
+                // Fix things that would prevent them moving.
                 player.setWalkSpeed(0.2f);
-                player.setFlySpeed(0.1f);            
+                player.setFlySpeed(0.1f);  
+                
+                // Reapwn the player.
+                // TODO: Is this needed?
                 player.spigot().respawn();
+
+                // Set the game mode back to survival.
                 player.setGameMode(GameMode.SURVIVAL);
             }
         }, 2l);
