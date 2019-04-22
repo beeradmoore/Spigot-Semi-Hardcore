@@ -110,14 +110,7 @@ public class PlayerMoveListener implements Listener
         _app.getLogger().info("onPlayerQuitEvent");
 
         String playerName = event.getPlayer().getName();
-        Timer timer = _deathTimers.get(playerName);
-        if (timer != null)
-        {
-            timer.cancel();
-            timer = null;
-
-            _deathTimers.remove(playerName);
-        }
+        cancelTimer(playerName);
     }
 
     @EventHandler
