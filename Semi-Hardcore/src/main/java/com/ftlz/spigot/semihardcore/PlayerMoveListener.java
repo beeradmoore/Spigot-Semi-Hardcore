@@ -68,6 +68,11 @@ public class PlayerMoveListener implements Listener
 
         int deathDuration = _app.getConfig().getInt("death-duration", 21600);
 
+        if (event.getEntity().getKiller() instanceof Player) {
+            deathDuration = _app.getConfig().getInt("pvp-death-duration", 60);
+        }
+
+
         _deathLocations.put(player.getName(), new DeathData(player, deathDuration));
 
         startTimer(player.getName(), _deathLocations.get(player.getName()).getRespawnTime());

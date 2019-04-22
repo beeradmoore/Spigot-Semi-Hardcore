@@ -148,7 +148,7 @@ public class CommandShc implements CommandExecutor {
         
         if(deathMessages.size() > 0)
         {
-            messagesToPrint.add(String.format("Page: [%s/%s]", (page+1), (int)(Math.ceil(theWarDead.size() /  pageSize))));
+            messagesToPrint.add(String.format("Page: [%s/%s]", (page+1), (int)(Math.ceil((float)theWarDead.size() / (float)pageSize))));
             messagesToPrint.addAll(deathMessages.subList(fromIndex, toIndex));
         }
         else 
