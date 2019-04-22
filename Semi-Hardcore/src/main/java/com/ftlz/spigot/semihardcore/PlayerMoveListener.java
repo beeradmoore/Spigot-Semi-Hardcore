@@ -246,8 +246,6 @@ public class PlayerMoveListener implements Listener
 
                     Type type = new TypeToken<HashMap<String, DeathData>>(){}.getType();
                     _deathLocations = gson.fromJson(fileReader, type);
-                    _app.getLogger().info(_deathLocations.toString());
-                    _app.getLogger().info(_deathLocations.get("icewave04").getPlayerName());
                 }
                 else
                 {
