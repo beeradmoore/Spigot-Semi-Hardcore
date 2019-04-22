@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import com.google.common.reflect.TypeToken;
+import java.lang.reflect.Type;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -240,8 +242,12 @@ public class PlayerMoveListener implements Listener
                     gsonBuilder.setPrettyPrinting();        
                     final Gson gson = gsonBuilder.create();
                    
-                    fileReader = new FileReader(file);                   
-                    _deathLocations = gson.fromJson(fileReader, _deathLocations.getClass());
+                    fileReader = new FileReader(file);
+
+                    Type type = new TypeToken<HashMap<String, DeathData>>(){}.getType();
+                    _deathLocations = gson.fromJson(fileReader, type);
+                    _app.getLogger().info(_deathLocations.toString());
+                    _app.getLogger().info(_deathLocations.get("icewave04").getPlayerName());
                 }
                 else
                 {
