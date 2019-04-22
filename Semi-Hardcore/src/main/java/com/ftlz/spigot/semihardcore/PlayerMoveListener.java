@@ -124,7 +124,13 @@ public class PlayerMoveListener implements Listener
         _app.getLogger().info("onPlayerJoinEvent");
 
         Player player = event.getPlayer();
-       
+
+      
+        int deathDuration = _app.getConfig().getInt("death-duration", 21600);
+        String displayTime = secondsToDisplay(deathDuration);
+        player.sendMessage("" + ChatColor.RED + "" + ChatColor.BOLD + "NOTE:" + ChatColor.RESET + "" + ChatColor.RED + " A death will result in you being a ghost for " + displayTime + ".");
+ 
+        
         if (player.getGameMode() == GameMode.SPECTATOR)
         {
             DeathData deathData = _deathLocations.get(player.getName());
