@@ -1,13 +1,14 @@
 package com.ftlz.spigot.semihardcore;
 
-import static org.junit.Assert.assertNotNull;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -42,6 +43,12 @@ public class PlayerMoveListener implements Listener
 
     private App _app;
     private final String DeathLocationsFilename = "SH-DeathLocations.json";
+    private static PlayerMoveListener _instance;
+
+    public static PlayerMoveListener Instance()
+    {
+        return _instance;
+    }
 
     public PlayerMoveListener(App app)
     {
@@ -49,6 +56,7 @@ public class PlayerMoveListener implements Listener
         _deathLocations = new HashMap<String, DeathData>();
         _deathTimers = new HashMap<String, Timer>();
         loadData();
+        _instance = this;
     }
 
     @EventHandler
@@ -62,7 +70,7 @@ public class PlayerMoveListener implements Listener
 
         _deathLocations.put(player.getName(), new DeathData(player, deathDuration));
 
-        startTimer(player.getName(), deathDuration);
+        startTimer(player.getName(), _deathLocations.get(player.getName()).getRespawnTime());
 
         saveData();
     }
@@ -142,11 +150,10 @@ public class PlayerMoveListener implements Listener
                 return;
             }
             
-            int secondsUntilRespawn = deathData.getRespawnTime() - getCurrentUnixTimestamp();
-            if (secondsUntilRespawn > 0)
+            if (deathData.shouldStartRespawnTimer())
             {
                 displayRespawnCountdown(player, deathData);
-                startTimer(player.getName(), secondsUntilRespawn);
+                startTimer(player.getName(), deathData.respawnTimerDuration());
             }
             else
             {
@@ -193,7 +200,12 @@ public class PlayerMoveListener implements Listener
         }
     }
 
-    private String secondsToDisplay(int seconds)
+    public String secondsToDisplayFullTimestamp(int timestamp)
+    {
+        return secondsToDisplay(timestamp - getCurrentUnixTimestamp());
+    }
+
+    public String secondsToDisplay(int seconds)
     { 
         int remainingSeconds = seconds;
 
@@ -424,6 +436,8 @@ public class PlayerMoveListener implements Listener
 
     private void startTimer(String playerName, int seconds)
     {
+        _app.getLogger().info(playerName);
+        _app.getLogger().info(String.format("%s", seconds));
         // If it exists, kill it.
         cancelTimer(playerName);
 
@@ -492,5 +506,61 @@ public class PlayerMoveListener implements Listener
         }, 2l);
     }
 
-    
+    public boolean respawnPlayer(String playerName)
+    {
+        Player player = _app.getServer().getPlayer(playerName);
+        if(player.getGameMode() == GameMode.SPECTATOR)
+        {
+            player.sendMessage("You're being commanded to rise!");
+            respawnPlayer(player);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean adjustPlayersRespawnSchedule(String playerName, int newDuration)
+    {
+        // Cancel the timer
+        // Start a new timer (if they're online)
+        // Update the deathdata in memory
+        // Save to file
+        Player player = _app.getServer().getPlayer(playerName);
+        DeathData playerDeathData = _deathLocations.get(playerName);
+        if(player == null || player.getGameMode() != GameMode.SPECTATOR)
+        {
+            return false;
+        }
+
+        cancelTimer(playerName);
+        if(player.isOnline())
+        {
+            startTimer(playerName, newDuration);
+        }
+        int newRespawnTime = newDuration + getCurrentUnixTimestamp();
+        _deathLocations.get(playerName).setRespawnTime(newRespawnTime);
+        _app.getLogger().info(secondsToDisplayFullTimestamp(playerDeathData.getRespawnTime()));
+        saveData();
+        player.sendMessage("Your respawn has been altered by fate, you shall respawn at " + secondsToDisplayFullTimestamp(playerDeathData.getRespawnTime()));
+        return true;
+    }
+
+    public ArrayList<DeathData> getCurrentlyDead()
+    {
+        ArrayList<DeathData> theWarDead = new ArrayList<DeathData>();
+        for (HashMap.Entry<String, DeathData> entry : _deathLocations.entrySet()) {
+            //System.out.println(entry.getKey() + " = " + entry.getValue());
+            if(entry.getValue().currentlyDead())
+            {
+                theWarDead.add(entry.getValue());
+            }
+        }
+
+        Collections.sort(theWarDead, new Comparator<DeathData>(){
+            public int compare(DeathData d1, DeathData d2) {
+                return d2.getRespawnTime() - d1.getRespawnTime();
+            }
+        });
+
+        return theWarDead;
+    }
 }
