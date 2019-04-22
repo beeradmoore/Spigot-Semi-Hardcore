@@ -1,2 +1,3 @@
 #Default: 21600 (6 hours)
 death-duration: 60
+pvp-death-duration: 60
