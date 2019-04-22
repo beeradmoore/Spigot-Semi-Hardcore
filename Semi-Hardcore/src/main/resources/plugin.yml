@@ -3,5 +3,5 @@ name: Semi-Hardcore
 version: 1.0
 commands:
   shc:
-    description: Semi-Hardcore Commands
+    description: Access SHC commands
     usage: /shc

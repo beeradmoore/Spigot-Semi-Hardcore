@@ -13,9 +13,6 @@ public class DeathData
     @SerializedName("death_location")
     private Location _deathLocation;
 
-    @SerializedName("spawn_location")
-    private Location _spawnLocation;
-
     @SerializedName("death_time")
     private int _deathTime;
 
@@ -26,7 +23,6 @@ public class DeathData
     {
         _playerName = player.getName();
         _deathLocation = player.getLocation();
-        _spawnLocation = player.getBedSpawnLocation();
         _deathTime = (int)(System.currentTimeMillis() / 1000L);
         _respawnTime = _deathTime + deathDuration;
     }
@@ -41,11 +37,6 @@ public class DeathData
         return _deathLocation;
     }
 
-    public Location getSpawnLocation()
-    {
-        return _spawnLocation;
-    }
-
     public int getDeathTime()
     {
         return _deathTime;
@@ -54,5 +45,29 @@ public class DeathData
     public int getRespawnTime()
     {
         return _respawnTime;
+    }
+
+    public boolean shouldStartRespawnTimer()
+    {
+        int timestamp = (int)(System.currentTimeMillis() / 1000L);
+        int secondsUntilRespawn = _respawnTime - timestamp;
+        return secondsUntilRespawn > 0;
+    }
+
+    public int respawnTimerDuration()
+    {
+        int timestamp = (int)(System.currentTimeMillis() / 1000L);
+        return _respawnTime - timestamp;
+    }
+
+    public void setRespawnTime(int newRespawnTime)
+    {
+        _respawnTime = newRespawnTime;
+    }
+
+    public boolean currentlyDead()
+    {
+        int timestamp = (int)(System.currentTimeMillis() / 1000L);
+        return _respawnTime > timestamp;
     }
 }
