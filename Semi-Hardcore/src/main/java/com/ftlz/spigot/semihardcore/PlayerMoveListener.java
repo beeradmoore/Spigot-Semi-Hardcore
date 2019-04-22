@@ -1,8 +1,11 @@
 package com.ftlz.spigot.semihardcore;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -12,6 +15,9 @@ import java.util.TimerTask;
 
 import com.google.common.reflect.TypeToken;
 import java.lang.reflect.Type;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -118,14 +124,7 @@ public class PlayerMoveListener implements Listener
         _app.getLogger().info("onPlayerQuitEvent");
 
         String playerName = event.getPlayer().getName();
-        Timer timer = _deathTimers.get(playerName);
-        if (timer != null)
-        {
-            timer.cancel();
-            timer = null;
-
-            _deathTimers.remove(playerName);
-        }
+        cancelTimer(playerName);
     }
 
     @EventHandler
@@ -134,7 +133,13 @@ public class PlayerMoveListener implements Listener
         _app.getLogger().info("onPlayerJoinEvent");
 
         Player player = event.getPlayer();
-       
+
+      
+        int deathDuration = _app.getConfig().getInt("death-duration", 21600);
+        String displayTime = secondsToDisplay(deathDuration);
+        player.sendMessage("" + ChatColor.RED + "" + ChatColor.BOLD + "NOTE:" + ChatColor.RESET + "" + ChatColor.RED + " A death will result in you being a ghost for " + displayTime + ".");
+ 
+        
         if (player.getGameMode() == GameMode.SPECTATOR)
         {
             DeathData deathData = _deathLocations.get(player.getName());
@@ -163,7 +168,7 @@ public class PlayerMoveListener implements Listener
         if (event.getCause() == TeleportCause.SPECTATE)
         {
             event.setCancelled(true);
-            event.getPlayer().sendMessage(ChatColor.RED + "Sorry, but I can't let you do that!");
+            event.getPlayer().setSpectatorTarget(null);
         }
     }
 
@@ -189,7 +194,7 @@ public class PlayerMoveListener implements Listener
                 if (secondsUntilRespawn > 0)
                 {
                     String respawnTime = secondsToDisplay( secondsUntilRespawn);
-                    player.sendMessage("Respawn in " + respawnTime + ".");
+                    player.sendMessage("" + ChatColor.RED + "Respawn in " + respawnTime + ".");
                 }
             }
         }
@@ -241,48 +246,93 @@ public class PlayerMoveListener implements Listener
     private void loadData()
     {
         _app.getLogger().info("LoadData");
-        FileReader fileReader = null;
+
+
+        RandomAccessFile file = null;
+        FileLock fileLock = null;
         try
         {
-            File file = new File(DeathLocationsFilename);
-            if (file.exists())
-            {
-                if (file.canRead())
-                {
-                    final GsonBuilder gsonBuilder = new GsonBuilder();
-                    gsonBuilder.registerTypeAdapter(Location.class, new LocationAdapter());
-                    gsonBuilder.setPrettyPrinting();        
-                    final Gson gson = gsonBuilder.create();
-                   
-                    fileReader = new FileReader(file);
+            final GsonBuilder gsonBuilder = new GsonBuilder();
+            gsonBuilder.registerTypeAdapter(Location.class, new LocationAdapter());
+            gsonBuilder.setPrettyPrinting();        
+            final Gson gson = gsonBuilder.create();
 
-                    Type type = new TypeToken<HashMap<String, DeathData>>(){}.getType();
-                    _deathLocations = gson.fromJson(fileReader, type);
-                }
-                else
+            file = new RandomAccessFile(DeathLocationsFilename, "rw");
+            FileChannel fileChannel = file.getChannel();
+            
+            fileLock = fileChannel.lock();
+            if (fileLock != null)
+            {
+                FileReader fileReader = null;
+                try
                 {
-                    throw new Exception("Config exists but we can't read it.");
+                    File fileObject = new File(DeathLocationsFilename);
+                    if (fileObject.exists())
+                    {
+                        if (fileObject.canRead())
+                        {                   
+                            fileReader = new FileReader(fileObject);
+                            Type type = new TypeToken<HashMap<String, DeathData>>(){}.getType();
+                            _deathLocations = gson.fromJson(fileReader, type);
+                        }
+                        else
+                        {
+                            throw new Exception("Config exists but we can't read it.");
+                        }
+                    }  
                 }
-            }  
+                catch (Exception err)
+                {
+                    _app.getLogger().info("ERROR (LoadData): " + err.getMessage());
+                    _deathLocations = new HashMap<String, DeathData>();
+                }
+                finally
+                {
+                    if (fileReader != null)
+                    {
+                        try
+                        {
+                            fileReader.close();
+                            fileReader = null;
+                        }
+                        catch (Exception err)
+                        {
+                            _app.getLogger().info("ERROR (LoadData): " + err.getMessage());
+                        }
+                    }
+
+                    if (fileLock != null)
+                    {
+                        try
+                        {
+                            fileLock.close();
+                            fileLock = null;
+                        }
+                        catch (Exception err)
+                        {
+                            _app.getLogger().info("ERROR (LoadData): " + err.getMessage());
+                        }
+                    }
+                }
+            }
         }
         catch (Exception err)
         {
             _app.getLogger().info("ERROR (LoadData): " + err.getMessage());
-            _deathLocations = new HashMap<String, DeathData>();
         }
         finally
         {
-            if (fileReader != null)
+            if (fileLock != null)
             {
                 try
                 {
-                    fileReader.close();
+                    fileLock.close();
+                    fileLock = null;
                 }
                 catch (Exception err)
                 {
                     _app.getLogger().info("ERROR (LoadData): " + err.getMessage());
                 }
-                fileReader = null;
             }
         }
     }
@@ -291,7 +341,9 @@ public class PlayerMoveListener implements Listener
     {
         _app.getLogger().info("SaveData");
 
-        FileWriter fileWriter = null;
+
+        RandomAccessFile file = null;
+        FileLock fileLock = null;
         try
         {
             final GsonBuilder gsonBuilder = new GsonBuilder();
@@ -300,8 +352,52 @@ public class PlayerMoveListener implements Listener
             final Gson gson = gsonBuilder.create();
             String jsonData = gson.toJson(_deathLocations);
 
-            fileWriter = new FileWriter(DeathLocationsFilename);    
-            fileWriter.write(jsonData);
+            file = new RandomAccessFile(DeathLocationsFilename, "rw");
+            FileChannel fileChannel = file.getChannel();
+
+            fileLock = fileChannel.lock();
+            if (fileLock != null)
+            {
+                FileWriter fileWriter = null;
+                try
+                {
+                    fileWriter = new FileWriter(DeathLocationsFilename);    
+                    fileWriter.write(jsonData);
+                }
+                catch (Exception err)
+                {
+                    _app.getLogger().info("ERROR (SaveData): " + err.getMessage());
+                }
+                finally
+                {                    
+                    if (fileWriter != null)
+                    {
+                        try
+                        {
+                            fileWriter.close();
+                        }
+                        catch (Exception err)
+                        {
+                            _app.getLogger().info("ERROR (SaveData): " + err.getMessage());
+                        }
+
+                        fileWriter = null;
+                    }
+
+                    if (fileLock != null)
+                    {
+                        try
+                        {
+                            fileLock.close();
+                            fileLock = null;
+                        }
+                        catch (Exception err)
+                        {
+                            _app.getLogger().info("ERROR (SaveData): " + err.getMessage());
+                        }
+                    }
+                }
+            }
         }
         catch (Exception err)
         {
@@ -309,19 +405,18 @@ public class PlayerMoveListener implements Listener
         }
         finally
         {
-            if (fileWriter != null)
+            if (fileLock != null)
             {
                 try
                 {
-                    fileWriter.close();
+                    fileLock.close();
+                    fileLock = null;
                 }
                 catch (Exception err)
                 {
                     _app.getLogger().info("ERROR (SaveData): " + err.getMessage());
                 }
-
-                fileWriter = null;
-            } 
+            }
         }
     }
 
