@@ -188,7 +188,7 @@ public class PlayerMoveListener implements Listener
                 if (secondsUntilRespawn > 0)
                 {
                     String respawnTime = secondsToDisplay( secondsUntilRespawn);
-                    player.sendMessage("Respawn in " + respawnTime + ".");
+                    player.sendMessage("" + ChatColor.RED + "Respawn in " + respawnTime + ".");
                 }
             }
         }
