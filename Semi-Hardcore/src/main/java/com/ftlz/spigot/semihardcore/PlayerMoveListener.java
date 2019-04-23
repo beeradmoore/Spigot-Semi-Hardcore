@@ -295,6 +295,10 @@ public class PlayerMoveListener implements Listener
                 fileReader = null;
             }
         }
+        if(_deathLocations == null || !(_deathLocations instanceof HashMap))
+        {
+            _deathLocations = new HashMap<String, DeathData>();
+        }
     }
 
     private void saveData()
@@ -480,7 +484,10 @@ public class PlayerMoveListener implements Listener
         if(player.getGameMode() == GameMode.SPECTATOR)
         {
             player.sendMessage("You're being commanded to rise!");
+            cancelTimer(playerName);
+            _deathLocations.get(player.getName()).respawningPlayer();
             respawnPlayer(player);
+            saveData();
             return true;
         }
         return false;

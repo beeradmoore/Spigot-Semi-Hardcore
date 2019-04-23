@@ -70,4 +70,9 @@ public class DeathData
         int timestamp = (int)(System.currentTimeMillis() / 1000L);
         return _respawnTime > timestamp;
     }
+
+    public void respawningPlayer()
+    {
+        _respawnTime = (int)(System.currentTimeMillis() / 1000L);
+    }
 }
