@@ -75,7 +75,7 @@ public class PlayerMoveListener implements Listener
 
         _deathLocations.put(player.getName(), new DeathData(player, deathDuration));
 
-        startTimer(player.getName(), _deathLocations.get(player.getName()).getRespawnTime());
+        startTimer(player.getName(), deathDuration);
 
         saveData();
     }
