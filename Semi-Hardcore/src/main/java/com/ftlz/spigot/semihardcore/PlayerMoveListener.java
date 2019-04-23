@@ -66,6 +66,16 @@ public class PlayerMoveListener implements Listener
 
         Player player = event.getEntity();
 
+        // Player was killed by the timer to respawn.
+        DeathData deathData = _deathLocations.get(player.getName());
+        if (deathData != null)
+        {
+            event.setDeathMessage(null);
+            deathData.setIsRespawning(true);
+            saveData();
+            return;
+        }
+
         int deathDuration = _app.getConfig().getInt("death-duration", 21600);
 
         if (event.getEntity().getKiller() instanceof Player) {
@@ -373,7 +383,30 @@ public class PlayerMoveListener implements Listener
                 _app.getLogger().info(playerName);
                 _deathTimers.remove(playerName);
                 Player player = _app.getServer().getPlayer(playerName);
-                respawnPlayer(player);
+
+                _app.getServer().getScheduler().scheduleSyncDelayedTask(_app, new Runnable()
+                {
+                    public void run()
+                    {
+                        DeathData deathData = _deathLocations.get(player.getName());
+                        if (deathData != null)
+                        {
+                            _app.getLogger().info("Death data is not null");
+                            // Set is respawning to true and kill the player. 
+                            // When the player hits "respawn" it will call the onPlayerRespawn event
+                            deathData.setIsRespawning(true);
+                            saveData();
+                            player.setHealth(0);
+                            player.setGameMode(GameMode.SPECTATOR);
+                            return;
+                        }
+                        else
+                        {
+                            // Death data not found, lets force respawn.
+                            respawnPlayer(player);
+                        }
+                    }
+                });
                 
             }
         };
