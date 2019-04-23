@@ -251,93 +251,48 @@ public class PlayerMoveListener implements Listener
     private void loadData()
     {
         _app.getLogger().info("LoadData");
-
-
-        RandomAccessFile file = null;
-        FileLock fileLock = null;
+        FileReader fileReader = null;
         try
         {
-            final GsonBuilder gsonBuilder = new GsonBuilder();
-            gsonBuilder.registerTypeAdapter(Location.class, new LocationAdapter());
-            gsonBuilder.setPrettyPrinting();        
-            final Gson gson = gsonBuilder.create();
-
-            file = new RandomAccessFile(DeathLocationsFilename, "rw");
-            FileChannel fileChannel = file.getChannel();
-            
-            fileLock = fileChannel.lock();
-            if (fileLock != null)
+            File file = new File(DeathLocationsFilename);
+            if (file.exists())
             {
-                FileReader fileReader = null;
-                try
+                if (file.canRead())
                 {
-                    File fileObject = new File(DeathLocationsFilename);
-                    if (fileObject.exists())
-                    {
-                        if (fileObject.canRead())
-                        {                   
-                            fileReader = new FileReader(fileObject);
-                            Type type = new TypeToken<HashMap<String, DeathData>>(){}.getType();
-                            _deathLocations = gson.fromJson(fileReader, type);
-                        }
-                        else
-                        {
-                            throw new Exception("Config exists but we can't read it.");
-                        }
-                    }  
-                }
-                catch (Exception err)
-                {
-                    _app.getLogger().info("ERROR (LoadData): " + err.getMessage());
-                    _deathLocations = new HashMap<String, DeathData>();
-                }
-                finally
-                {
-                    if (fileReader != null)
-                    {
-                        try
-                        {
-                            fileReader.close();
-                            fileReader = null;
-                        }
-                        catch (Exception err)
-                        {
-                            _app.getLogger().info("ERROR (LoadData): " + err.getMessage());
-                        }
-                    }
+                    final GsonBuilder gsonBuilder = new GsonBuilder();
+                    gsonBuilder.registerTypeAdapter(Location.class, new LocationAdapter());
+                    gsonBuilder.setPrettyPrinting();        
+                    final Gson gson = gsonBuilder.create();
+                   
+                    fileReader = new FileReader(file);
 
-                    if (fileLock != null)
-                    {
-                        try
-                        {
-                            fileLock.close();
-                            fileLock = null;
-                        }
-                        catch (Exception err)
-                        {
-                            _app.getLogger().info("ERROR (LoadData): " + err.getMessage());
-                        }
-                    }
+                    Type type = new TypeToken<HashMap<String, DeathData>>(){}.getType();
+                    _deathLocations = gson.fromJson(fileReader, type);
                 }
-            }
+                else
+                {
+                    throw new Exception("Config exists but we can't read it.");
+                }
+            }  
         }
         catch (Exception err)
         {
             _app.getLogger().info("ERROR (LoadData): " + err.getMessage());
+            _deathLocations = new HashMap<String, DeathData>();
         }
         finally
         {
-            if (fileLock != null)
+            if (fileReader != null)
             {
                 try
                 {
-                    fileLock.close();
-                    fileLock = null;
+                    fileReader.close();
                 }
                 catch (Exception err)
                 {
                     _app.getLogger().info("ERROR (LoadData): " + err.getMessage());
                 }
+                fileReader = null;
             }
         }
     }
@@ -346,19 +301,8 @@ public class PlayerMoveListener implements Listener
     {
         _app.getLogger().info("SaveData");
 
-
-        RandomAccessFile file = null;
-        FileLock fileLock = null;
-        try
-        {
-            final GsonBuilder gsonBuilder = new GsonBuilder();
-            gsonBuilder.registerTypeAdapter(Location.class, new LocationAdapter());
-            gsonBuilder.setPrettyPrinting();        
-            final Gson gson = gsonBuilder.create();
-            String jsonData = gson.toJson(_deathLocations);
-
-            file = new RandomAccessFile(DeathLocationsFilename, "rw");
-            FileChannel fileChannel = file.getChannel();
+        /*
+                    FileChannel fileChannel = file.getChannel();
 
             fileLock = fileChannel.lock();
             if (fileLock != null)
@@ -403,6 +347,25 @@ public class PlayerMoveListener implements Listener
                     }
                 }
             }
+
+            */
+
+        FileOutputStream fileOutputStream = null;
+        try
+        {
+            final GsonBuilder gsonBuilder = new GsonBuilder();
+            gsonBuilder.registerTypeAdapter(Location.class, new LocationAdapter());
+            gsonBuilder.setPrettyPrinting();        
+            final Gson gson = gsonBuilder.create();
+            String jsonData = gson.toJson(_deathLocations);
+
+            File file = new File(DeathLocationsFilename);
+            fileOutputStream = new FileOutputStream(file);
+            FileLock fileLock = fileOutputStream.getChannel().lock();
+            if (fileLock != null)
+            {
+                fileOutputStream.write(jsonData.getBytes());
+            }
         }
         catch (Exception err)
         {
@@ -410,12 +373,12 @@ public class PlayerMoveListener implements Listener
         }
         finally
         {
-            if (fileLock != null)
+            if (fileOutputStream != null)
             {
                 try
                 {
-                    fileLock.close();
-                    fileLock = null;
+                    fileOutputStream.close();
+                    fileOutputStream = null;
                 }
                 catch (Exception err)
                 {
