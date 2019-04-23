@@ -250,7 +250,7 @@ public class PlayerMoveListener implements Listener
 
     private void loadData()
     {
-        _app.getLogger().info("LoadData");
+        _app.getLogger().info("loadData");
         FileReader fileReader = null;
         try
         {
@@ -277,7 +277,7 @@ public class PlayerMoveListener implements Listener
         }
         catch (Exception err)
         {
-            _app.getLogger().info("ERROR (LoadData): " + err.getMessage());
+            _app.getLogger().info("ERROR (loadData): " + err.getMessage());
             _deathLocations = new HashMap<String, DeathData>();
         }
         finally
@@ -290,7 +290,7 @@ public class PlayerMoveListener implements Listener
                 }
                 catch (Exception err)
                 {
-                    _app.getLogger().info("ERROR (LoadData): " + err.getMessage());
+                    _app.getLogger().info("ERROR (loadData): " + err.getMessage());
                 }
                 fileReader = null;
             }
@@ -303,56 +303,7 @@ public class PlayerMoveListener implements Listener
 
     private void saveData()
     {
-        _app.getLogger().info("SaveData");
-
-        /*
-                    FileChannel fileChannel = file.getChannel();
-
-            fileLock = fileChannel.lock();
-            if (fileLock != null)
-            {
-                FileWriter fileWriter = null;
-                try
-                {
-                    fileWriter = new FileWriter(DeathLocationsFilename);    
-                    fileWriter.write(jsonData);
-                }
-                catch (Exception err)
-                {
-                    _app.getLogger().info("ERROR (SaveData): " + err.getMessage());
-                }
-                finally
-                {                    
-                    if (fileWriter != null)
-                    {
-                        try
-                        {
-                            fileWriter.close();
-                        }
-                        catch (Exception err)
-                        {
-                            _app.getLogger().info("ERROR (SaveData): " + err.getMessage());
-                        }
-
-                        fileWriter = null;
-                    }
-
-                    if (fileLock != null)
-                    {
-                        try
-                        {
-                            fileLock.close();
-                            fileLock = null;
-                        }
-                        catch (Exception err)
-                        {
-                            _app.getLogger().info("ERROR (SaveData): " + err.getMessage());
-                        }
-                    }
-                }
-            }
-
-            */
+        _app.getLogger().info("saveData");
 
         FileOutputStream fileOutputStream = null;
         try
@@ -373,7 +324,7 @@ public class PlayerMoveListener implements Listener
         }
         catch (Exception err)
         {
-            _app.getLogger().info("ERROR (SaveData): " + err.getMessage());
+            _app.getLogger().info("ERROR (saveData): " + err.getMessage());
         }
         finally
         {
@@ -386,7 +337,7 @@ public class PlayerMoveListener implements Listener
                 }
                 catch (Exception err)
                 {
-                    _app.getLogger().info("ERROR (SaveData): " + err.getMessage());
+                    _app.getLogger().info("ERROR (saveData): " + err.getMessage());
                 }
             }
         }
