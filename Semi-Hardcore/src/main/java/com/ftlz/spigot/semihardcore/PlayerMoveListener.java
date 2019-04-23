@@ -471,7 +471,6 @@ public class PlayerMoveListener implements Listener
             cancelTimer(playerName);
             _deathLocations.get(player.getName()).respawningPlayer();
             respawnPlayer(player);
-            saveData();
             return true;
         }
         return false;
