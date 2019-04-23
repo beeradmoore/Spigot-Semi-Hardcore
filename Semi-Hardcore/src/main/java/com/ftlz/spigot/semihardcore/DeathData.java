@@ -18,6 +18,9 @@ public class DeathData
 
     @SerializedName("respawn_time")
     private int _respawnTime;
+
+    @SerializedName("is_respawning")
+    private boolean _isRespawning;
     
     public DeathData(Player player, int deathDuration)
     {
@@ -47,6 +50,11 @@ public class DeathData
         return _respawnTime;
     }
 
+    public boolean getIsRespawning()
+    {
+        return _isRespawning;
+    }
+
     public boolean shouldStartRespawnTimer()
     {
         int timestamp = (int)(System.currentTimeMillis() / 1000L);
@@ -63,6 +71,11 @@ public class DeathData
     public void setRespawnTime(int newRespawnTime)
     {
         _respawnTime = newRespawnTime;
+    }
+
+    public void setIsRespawning(boolean isRespawning)
+    {
+        _isRespawning = isRespawning;
     }
 
     public boolean currentlyDead()
