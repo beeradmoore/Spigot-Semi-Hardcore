@@ -32,6 +32,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
+import org.bukkit.potion.PotionEffect;
 
 import net.md_5.bungee.api.ChatColor;
  
@@ -448,19 +449,30 @@ public class PlayerMoveListener implements Listener
                     spawnLocation = _app.getServer().getWorlds().get(0).getSpawnLocation();
                 }
 
-                // Teleport to correct poition.
-                player.teleport(spawnLocation);
-
                 // Fix things that would prevent them moving.
                 player.setWalkSpeed(0.2f);
                 player.setFlySpeed(0.1f);  
-                
-                // Reapwn the player.
-                // TODO: Is this needed?
-                player.spigot().respawn();
 
+                // Teleport to correct poition.
+                player.teleport(spawnLocation);
+
+                // Puts you out incase you were on fire.
+                player.setFireTicks(0);
+
+                // Removes any potion effects you had.
+                for (PotionEffect effect : player.getActivePotionEffects())
+                {
+                    player.removePotionEffect(effect.getType());
+                }
+                
                 // Set the game mode back to survival.
                 player.setGameMode(GameMode.SURVIVAL);
+
+                // Reapwn the player.
+                player.spigot().respawn();
+
+                //Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), "effect " + player.getName() + " clear");
+
             }
         }, 2l);
     }
