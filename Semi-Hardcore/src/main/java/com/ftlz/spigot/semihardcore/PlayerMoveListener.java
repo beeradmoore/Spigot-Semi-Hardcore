@@ -436,7 +436,10 @@ public class PlayerMoveListener implements Listener
         _app.getServer().getScheduler().scheduleSyncDelayedTask(_app, new Runnable()
         {
             public void run()
-            {                
+            {
+                _deathLocations.remove(player.getName());
+                saveData();
+
                 Location spawnLocation = player.getBedSpawnLocation();
 
                 // Players spawn locaiton was not found, send them back to world spawn.
