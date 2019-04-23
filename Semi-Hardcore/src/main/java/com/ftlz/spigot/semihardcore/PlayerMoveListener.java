@@ -115,6 +115,12 @@ public class PlayerMoveListener implements Listener
                         return;
                     }
 
+                    if (deathData.getIsRespawning())
+                    {
+                        respawnPlayer(player);
+                        return;
+                    }
+
                     // Lock the user down.
                     if (deathData.getRespawnTime() > getCurrentUnixTimestamp())
                     {
@@ -161,6 +167,12 @@ public class PlayerMoveListener implements Listener
             DeathData deathData = _deathLocations.get(player.getName());
 
             if (deathData == null)
+            {
+                respawnPlayer(player);
+                return;
+            }
+
+            if (deathData.getIsRespawning())
             {
                 respawnPlayer(player);
                 return;
