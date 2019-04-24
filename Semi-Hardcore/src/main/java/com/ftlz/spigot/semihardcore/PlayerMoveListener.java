@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.common.reflect.TypeToken;
 import java.lang.reflect.Type;
@@ -39,8 +40,8 @@ import net.md_5.bungee.api.ChatColor;
 public class PlayerMoveListener implements Listener
 {
     //private JSONArray _deathData;
-    private HashMap<String, DeathData> _deathLocations;
-    private HashMap<String, Timer> _deathTimers;
+    private ConcurrentHashMap<String, DeathData> _deathLocations;
+    private ConcurrentHashMap<String, Timer> _deathTimers;
 
     private App _app;
     private final String DeathLocationsFilename = "SH-DeathLocations.json";
@@ -54,8 +55,8 @@ public class PlayerMoveListener implements Listener
     public PlayerMoveListener(App app)
     {
         _app = app;
-        _deathLocations = new HashMap<String, DeathData>();
-        _deathTimers = new HashMap<String, Timer>();
+        _deathLocations = new ConcurrentHashMap<String, DeathData>();
+        _deathTimers = new ConcurrentHashMap<String, Timer>();
         loadData();
         _instance = this;
     }
@@ -301,7 +302,7 @@ public class PlayerMoveListener implements Listener
         catch (Exception err)
         {
             _app.getLogger().info("ERROR (loadData): " + err.getMessage());
-            _deathLocations = new HashMap<String, DeathData>();
+            _deathLocations = new ConcurrentHashMap<String, DeathData>();
         }
         finally
         {
@@ -318,9 +319,9 @@ public class PlayerMoveListener implements Listener
                 fileReader = null;
             }
         }
-        if(_deathLocations == null || !(_deathLocations instanceof HashMap))
+        if(_deathLocations == null || !(_deathLocations instanceof ConcurrentHashMap))
         {
-            _deathLocations = new HashMap<String, DeathData>();
+            _deathLocations = new ConcurrentHashMap<String, DeathData>();
         }
     }
 
@@ -328,42 +329,45 @@ public class PlayerMoveListener implements Listener
     {
         _app.getLogger().info("saveData");
 
-        FileOutputStream fileOutputStream = null;
-        try
-        {
-            final GsonBuilder gsonBuilder = new GsonBuilder();
-            gsonBuilder.registerTypeAdapter(Location.class, new LocationAdapter());
-            gsonBuilder.setPrettyPrinting();        
-            final Gson gson = gsonBuilder.create();
-            String jsonData = gson.toJson(_deathLocations);
+        // Save data on anther thread.
+        new Thread(() -> {
+            FileOutputStream fileOutputStream = null;
+            try
+            {
+                final GsonBuilder gsonBuilder = new GsonBuilder();
+                gsonBuilder.registerTypeAdapter(Location.class, new LocationAdapter());
+                gsonBuilder.setPrettyPrinting();        
+                final Gson gson = gsonBuilder.create();
+                String jsonData = gson.toJson(_deathLocations);
 
-            File file = new File(DeathLocationsFilename);
-            fileOutputStream = new FileOutputStream(file);
-            FileLock fileLock = fileOutputStream.getChannel().lock();
-            if (fileLock != null)
-            {
-                fileOutputStream.write(jsonData.getBytes());
-            }
-        }
-        catch (Exception err)
-        {
-            _app.getLogger().info("ERROR (saveData): " + err.getMessage());
-        }
-        finally
-        {
-            if (fileOutputStream != null)
-            {
-                try
+                File file = new File(DeathLocationsFilename);
+                fileOutputStream = new FileOutputStream(file);
+                FileLock fileLock = fileOutputStream.getChannel().lock();
+                if (fileLock != null)
                 {
-                    fileOutputStream.close();
-                    fileOutputStream = null;
-                }
-                catch (Exception err)
-                {
-                    _app.getLogger().info("ERROR (saveData): " + err.getMessage());
+                    fileOutputStream.write(jsonData.getBytes());
                 }
             }
-        }
+            catch (Exception err)
+            {
+                _app.getLogger().info("ERROR (saveData): " + err.getMessage());
+            }
+            finally
+            {
+                if (fileOutputStream != null)
+                {
+                    try
+                    {
+                        fileOutputStream.close();
+                        fileOutputStream = null;
+                    }
+                    catch (Exception err)
+                    {
+                        _app.getLogger().info("ERROR (saveData): " + err.getMessage());
+                    }
+                }
+            }
+        }).start();
     }
 
     private void cancelTimer(String playerName)
