@@ -34,7 +34,6 @@ import net.md_5.bungee.api.ChatColor;
  
 public class PlayerMoveListener implements Listener
 {
-    //private JSONArray _deathData;
     private ConcurrentHashMap<String, DeathData> _deathLocations;
     private ConcurrentHashMap<String, Timer> _deathTimers;
 
