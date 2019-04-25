@@ -75,7 +75,8 @@ public class PlayerMoveListener implements Listener
 
         int deathDuration = _app.getConfig().getInt("death-duration", 21600);
 
-        if (event.getEntity().getKiller() instanceof Player) {
+        if (event.getEntity().getKiller() instanceof Player)
+        {
             deathDuration = _app.getConfig().getInt("pvp-death-duration", 60);
         }
 
@@ -319,7 +320,7 @@ public class PlayerMoveListener implements Listener
                 fileReader = null;
             }
         }
-        if(_deathLocations == null || !(_deathLocations instanceof ConcurrentHashMap))
+        if (_deathLocations == null || !(_deathLocations instanceof ConcurrentHashMap))
         {
             _deathLocations = new ConcurrentHashMap<String, DeathData>();
         }
@@ -474,7 +475,7 @@ public class PlayerMoveListener implements Listener
             return;
         }
         
-        _app.getServer().getScheduler().scheduleSyncDelayedTask(_app, new Runnable()
+        _app.getServer().getScheduler().runTask(_app, new Runnable()
         {
             public void run()
             {
@@ -520,7 +521,7 @@ public class PlayerMoveListener implements Listener
     public boolean respawnPlayer(String playerName)
     {
         Player player = _app.getServer().getPlayer(playerName);
-        if(player.getGameMode() == GameMode.SPECTATOR)
+        if (player.getGameMode() == GameMode.SPECTATOR)
         {
             player.sendMessage("You're being commanded to rise!");
             cancelTimer(playerName);
@@ -539,13 +540,13 @@ public class PlayerMoveListener implements Listener
         // Save to file
         Player player = _app.getServer().getPlayer(playerName);
         DeathData playerDeathData = _deathLocations.get(playerName);
-        if(player == null || player.getGameMode() != GameMode.SPECTATOR)
+        if (player == null || player.getGameMode() != GameMode.SPECTATOR)
         {
             return false;
         }
 
         cancelTimer(playerName);
-        if(player.isOnline())
+        if (player.isOnline())
         {
             startTimer(playerName, newDuration);
         }
@@ -563,14 +564,16 @@ public class PlayerMoveListener implements Listener
         for (ConcurrentHashMap.Entry<String, DeathData> entry : _deathLocations.entrySet())
         {
             //System.out.println(entry.getKey() + " = " + entry.getValue());
-            if(entry.getValue().currentlyDead())
+            if (entry.getValue().currentlyDead())
             {
                 theWarDead.add(entry.getValue());
             }
         }
 
-        Collections.sort(theWarDead, new Comparator<DeathData>(){
-            public int compare(DeathData d1, DeathData d2) {
+        Collections.sort(theWarDead, new Comparator<DeathData>()
+        {
+            public int compare(DeathData d1, DeathData d2)
+            {
                 return d2.getRespawnTime() - d1.getRespawnTime();
             }
         });
