@@ -204,6 +204,11 @@ public class PlayerMoveListener implements Listener
     }
     */
 
+    public App getApp()
+    {
+        return _app;
+    }
+
     private void displayRespawnCountdown(Player player, DeathData deathData)
     {
         if (player.isOnline())
