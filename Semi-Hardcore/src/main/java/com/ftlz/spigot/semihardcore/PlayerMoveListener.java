@@ -6,7 +6,6 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -291,7 +290,7 @@ public class PlayerMoveListener implements Listener
                    
                     fileReader = new FileReader(file);
 
-                    Type type = new TypeToken<HashMap<String, DeathData>>(){}.getType();
+                    Type type = new TypeToken<ConcurrentHashMap<String, DeathData>>(){}.getType();
                     _deathLocations = gson.fromJson(fileReader, type);
                 }
                 else
@@ -561,7 +560,8 @@ public class PlayerMoveListener implements Listener
     public ArrayList<DeathData> getCurrentlyDead()
     {
         ArrayList<DeathData> theWarDead = new ArrayList<DeathData>();
-        for (HashMap.Entry<String, DeathData> entry : _deathLocations.entrySet()) {
+        for (ConcurrentHashMap.Entry<String, DeathData> entry : _deathLocations.entrySet())
+        {
             //System.out.println(entry.getKey() + " = " + entry.getValue());
             if(entry.getValue().currentlyDead())
             {
