@@ -80,6 +80,7 @@ public class PlayerMoveListener implements Listener
         }
 
 
+        //player.setGameMode(GameMode.SPECTATOR);
         _deathLocations.put(player.getName(), new DeathData(player, deathDuration));
 
         startTimer(player.getName(), deathDuration);
@@ -98,42 +99,46 @@ public class PlayerMoveListener implements Listener
         _app.getLogger().info("onPlayerRespawn");
 
         Player player = event.getPlayer();
-       
-        _app.getServer().getScheduler().scheduleSyncDelayedTask(_app, new Runnable() {
-            public void run() {
-                if (player.getGameMode() == GameMode.SPECTATOR)
+
+        
+
+        _app.getServer().getScheduler().runTask(_app, new Runnable()
+        {
+            public void run()
+            {
+                
+                clearPlayerStatus(player);
+            
+                DeathData deathData = _deathLocations.get(player.getName());
+                if (deathData == null)
                 {
-                    DeathData deathData = _deathLocations.get(player.getName());
-                    if (deathData == null)
-                    {
-                        _app.getLogger().info("DeathData was not found for " + player.getName());
-                        respawnPlayer(player);
-                        return;
-                    }
+                    _app.getLogger().info("DeathData was not found for " + player.getName());
+                    respawnPlayer(player);
+                    return;
+                }
 
-                    if (deathData.getIsRespawning())
-                    {
-                        respawnPlayer(player);
-                        return;
-                    }
+                if (deathData.getIsRespawning())
+                {
+                    respawnPlayer(player);
+                    return;
+                }
 
-                    // Lock the user down.
-                    if (deathData.getRespawnTime() > getCurrentUnixTimestamp())
-                    {
-                        player.teleport(deathData.getDeathLocation());
-                        player.setFlySpeed(0);
-                        player.setWalkSpeed(0);
-                        displayRespawnCountdown(player, deathData);
-                    }
-                    else
-                    {
-                        respawnPlayer(player);
-                    }
+                // Lock the user down.
+                if (deathData.currentlyDead())
+                {
+                    _app.getLogger().info("Teleporting player");
+                    player.setGameMode(GameMode.SPECTATOR);
+                    player.setFlySpeed(0);
+                    player.setWalkSpeed(0);
+                    player.teleport(deathData.getDeathLocation());
+                    displayRespawnCountdown(player, deathData);
+                }
+                else
+                {
+                    respawnPlayer(player);
                 }
             }
-        }, 2l);
-
-       
+        });       
     }
 
     @EventHandler
@@ -401,7 +406,7 @@ public class PlayerMoveListener implements Listener
                 _deathTimers.remove(playerName);
                 Player player = _app.getServer().getPlayer(playerName);
 
-                _app.getServer().getScheduler().scheduleSyncDelayedTask(_app, new Runnable()
+                _app.getServer().getScheduler().runTask(_app, new Runnable()
                 {
                     public void run()
                     {
@@ -411,10 +416,10 @@ public class PlayerMoveListener implements Listener
                             _app.getLogger().info("Death data is not null");
                             // Set is respawning to true and kill the player. 
                             // When the player hits "respawn" it will call the onPlayerRespawn event
-                            deathData.setIsRespawning(true);
-                            saveData();
+                            //deathData.setIsRespawning(true);
+                            //saveData();
                             player.setHealth(0);
-                            player.setGameMode(GameMode.SPECTATOR);
+                            //player.setGameMode(GameMode.SPECTATOR);
                             return;
                         }
                         else
@@ -494,27 +499,21 @@ public class PlayerMoveListener implements Listener
                 player.setFlySpeed(0.1f);  
 
                 // Teleport to correct poition.
-                player.teleport(spawnLocation);
+                //player.teleport(spawnLocation);
 
-                // Puts you out incase you were on fire.
-                player.setFireTicks(0);
-
-                // Removes any potion effects you had.
-                for (PotionEffect effect : player.getActivePotionEffects())
-                {
-                    player.removePotionEffect(effect.getType());
-                }
+                                
                 
                 // Set the game mode back to survival.
                 player.setGameMode(GameMode.SURVIVAL);
-
+           
                 // Reapwn the player.
-                player.spigot().respawn();
+                //player.spigot().respawn();
 
-                //Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), "effect " + player.getName() + " clear");
+                clearPlayerStatus(player);
+
 
             }
-        }, 2l);
+        });
     }
 
     public boolean respawnPlayer(String playerName)
