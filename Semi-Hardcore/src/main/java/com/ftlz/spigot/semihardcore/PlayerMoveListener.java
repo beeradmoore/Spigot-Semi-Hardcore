@@ -433,6 +433,30 @@ public class PlayerMoveListener implements Listener
         _deathTimers.put(playerName, timer);
     }
 
+
+    private void clearPlayerStatus(Player player)
+    {
+        _app.getServer().getScheduler().scheduleSyncDelayedTask(_app, new Runnable()
+        {
+            public void run()
+            {
+                // Puts you out incase you were on fire.
+                player.setFireTicks(0);
+
+                // Removes any potion effects you had.
+                for (PotionEffect effect : player.getActivePotionEffects())
+                {
+                    player.removePotionEffect(effect.getType());
+                }
+
+                player.setHealth(20.0);               
+
+                // _app.getServer().dispatchCommand(_app.getServer().getConsoleSender(), "effect " + player.getName() + " clear");
+            }
+        }, 1);
+
+    }
+
     private void respawnPlayer(Player player)
     {
         _app.getLogger().info("respawnPlayer");
