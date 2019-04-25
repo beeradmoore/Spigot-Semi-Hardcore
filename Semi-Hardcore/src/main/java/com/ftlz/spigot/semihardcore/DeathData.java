@@ -3,6 +3,7 @@ package com.ftlz.spigot.semihardcore;
 import com.google.gson.annotations.SerializedName;
 
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 public class DeathData
@@ -25,7 +26,29 @@ public class DeathData
     public DeathData(Player player, int deathDuration)
     {
         _playerName = player.getName();
-        _deathLocation = player.getLocation();
+        Location playerLocation = player.getLocation();
+        if (playerLocation.getWorld().getEnvironment().equals(World.Environment.THE_END))
+        {
+            // Use spawn location from the end, doesnt seem to work. Puts you at 0,0,0 in the end.
+            //playerLocation = playerLocation.getWorld().getSpawnLocation();
+
+            // Reset to overworld spawn position.
+            /*
+            playerLocation = player.getBedSpawnLocation();
+            if (playerLocation == null)
+            {
+                playerLocation = PlayerMoveListener.Instance().getApp().getServer().getWorlds().get(0).getSpawnLocation();
+            }
+            */
+
+            // Use player death location but if out of the world move up to safe spawn. 
+            // Players seem to die around -60
+            if (playerLocation.getBlockY() < -50)
+            {
+                playerLocation.setY(-50);
+            }
+        }
+        _deathLocation = playerLocation;
         _deathTime = (int)(System.currentTimeMillis() / 1000L);
         _respawnTime = _deathTime + deathDuration;
     }
