@@ -498,8 +498,11 @@ public class PlayerMoveListener implements Listener
                 player.setWalkSpeed(0.2f);
                 player.setFlySpeed(0.1f);  
 
-                // Teleport to correct poition.
-                //player.teleport(spawnLocation);
+                // Teleport to correct poition, if they are alive...
+                if(!player.isDead())
+                {
+                    player.teleport(spawnLocation);
+                }
 
                                 
                 
