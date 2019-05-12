@@ -10,7 +10,7 @@
   <packaging>jar</packaging>
 
   <name>Semi-Hardcore</name>
-  <url>https://github.com/beeradmoore/SpigotMC-Semi-Hardcore</url>
+  <url>https://github.com/beeradmoore/Spigot-Semi-Hardcore</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
